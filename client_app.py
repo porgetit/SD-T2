@@ -5,6 +5,11 @@ import uvicorn
 import sys
 import os
 
+# Imports explícitos para que PyInstaller los detecte e incluya en el EXE
+import client.api
+import shared.protocol
+
+
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
 
