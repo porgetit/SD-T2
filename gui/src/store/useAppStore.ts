@@ -19,6 +19,7 @@ interface AppStore {
 
   // ── Users ─────────────────────────────────────────────────────
   knownUsers: User[]
+  contacts: string[]
 
   // ── Chats ─────────────────────────────────────────────────────
   chats: Chat[]
@@ -26,17 +27,9 @@ interface AppStore {
   setActiveChat: (chatId: string) => void
   getOrCreateChat: (peerId: string) => Chat
   sendMessage: (text: string) => Promise<void>
-  requestChat: (username: string) => Promise<void>
-  acceptChat: () => Promise<void>
-  rejectChat: () => Promise<void>
-  endChat: () => Promise<void>
 
   // ── WebSocket event processor ─────────────────────────────────
   onWsEvent: (event: WsEvent) => void
-
-  // ── Pending chat requests ─────────────────────────────────────
-  pendingRequest: string | null  // username of who is requesting a chat
-  clearPendingRequest: () => void
 }
 
 function makeId(): string {
@@ -73,7 +66,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       chats: [],
       activeChatId: null,
       knownUsers: [],
-      pendingRequest: null,
+      contacts: [],
     })
   },
 
@@ -92,6 +85,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // ── Users ─────────────────────────────────────────────────────
   knownUsers: [],
+  contacts: [],
 
   // ── Chats ─────────────────────────────────────────────────────
   chats: [],
@@ -150,31 +144,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
   },
 
-  requestChat: async (username) => {
-    await api.requestChat(username)
-    const chat = get().getOrCreateChat(username)
-    set({ activeChatId: chat.id })
-  },
-
-  acceptChat: async () => {
-    await api.acceptChat()
-    const { pendingRequest } = get()
-    if (pendingRequest) {
-      const chat = get().getOrCreateChat(pendingRequest)
-      set({ activeChatId: chat.id, connectionState: 'IN_SESSION', pendingRequest: null })
-    }
-  },
-
-  rejectChat: async () => {
-    await api.rejectChat()
-    set({ pendingRequest: null })
-  },
-
-  endChat: async () => {
-    await api.endChat()
-    set({ connectionState: 'CONNECTED', activeChatId: null })
-  },
-
   // ── WS event processor ────────────────────────────────────────
   onWsEvent: (event) => {
     const { currentUser, getOrCreateChat } = get()
@@ -184,9 +153,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       case 'AUTH_OK': {
         const nick = event.payload.nickname as string || currentUser?.username || ''
         const avatar = event.payload.avatar_b64 as string | undefined
+        const serverContacts = (event.payload.contacts as string[]) || []
         set({
           connectionState: 'CONNECTED',
           currentUser: { id: nick, username: nick, ...(avatar ? { avatarUrl: avatar } : {}) },
+          contacts: serverContacts,
         })
         break
       }
@@ -195,11 +166,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({ connectionState: 'DISCONNECTED', currentUser: null })
         break
 
-      case 'REGISTER_OK': {
-        // login de inmediato tras registro: el store ya tiene el usuario provisional
-        set({ connectionState: 'CONNECTED' })
-        break
-      }
+
 
       case 'USER_LIST': {
         const users = (event.payload.users as string[]) ?? []
@@ -231,23 +198,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
         break
       }
 
-      case 'REQUEST_CHAT':
-        set({ pendingRequest: event.sender })
-        break
-
-      case 'ACCEPT_CHAT': {
-        const chat = getOrCreateChat(event.sender)
-        set({ activeChatId: chat.id, connectionState: 'IN_SESSION' })
+      case 'CONTACT_ACCEPTED': {
+        const contact = event.payload.contact as string
+        set((s) => ({ contacts: [...s.contacts, contact] }))
         break
       }
-
-      case 'REJECT_CHAT':
-        set({ connectionState: 'CONNECTED' })
-        break
-
-      case 'END_CHAT':
-        set({ connectionState: 'CONNECTED', activeChatId: null })
-        break
 
       case 'USER_JOINED':
         set((s) => {
@@ -262,8 +217,4 @@ export const useAppStore = create<AppStore>((set, get) => ({
         break
     }
   },
-
-  // ── Pending requests ──────────────────────────────────────────
-  pendingRequest: null,
-  clearPendingRequest: () => set({ pendingRequest: null }),
 }))

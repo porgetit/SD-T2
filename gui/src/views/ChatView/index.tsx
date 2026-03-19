@@ -2,16 +2,11 @@
 import { useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { ChatArea } from './ChatArea'
-import { useWebSocket } from '../../hooks/useWebSocket'
 import { useAppStore } from '../../store/useAppStore'
 import { api } from '../../api/client'
 
 export function ChatView() {
-  // Opens WS tunnel and registers onWsEvent processor
-  useWebSocket()
-
   const setConnectionState = useAppStore((s) => s.setConnectionState)
-  const knownUsers = useAppStore((s) => s.knownUsers)
 
   // On mount: sync state from FastAPI backend
   useEffect(() => {

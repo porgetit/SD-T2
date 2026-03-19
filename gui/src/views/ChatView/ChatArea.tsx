@@ -8,7 +8,6 @@ export function ChatArea() {
   const activeChatId = useAppStore((s) => s.activeChatId)
   const chats = useAppStore((s) => s.chats)
   const currentUser = useAppStore((s) => s.currentUser)
-  const endChat = useAppStore((s) => s.endChat)
 
   const chat = chats.find((c) => c.id === activeChatId)
   const peerId = chat?.participantIds.find((id) => id !== currentUser?.id) ?? ''
@@ -35,14 +34,6 @@ export function ChatArea() {
           <p className="text-[14px] font-bold text-[#1A1A1A] truncate">{peerId}</p>
         </div>
 
-        {/* End chat button */}
-        <button
-          onClick={() => void endChat()}
-          aria-label="Terminar chat"
-          className="text-[12px] text-chat-muted hover:text-red-500 border border-chat-border hover:border-red-200 rounded-full px-3 py-1 transition-colors flex-shrink-0"
-        >
-          Terminar
-        </button>
       </div>
 
       {/* Messages */}

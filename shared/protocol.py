@@ -24,6 +24,7 @@ class CommandType(str, Enum):
     AUTH_FAIL       = "AUTH_FAIL"         # respuesta de error
     UPDATE_PROFILE  = "UPDATE_PROFILE"    # actualizar avatar / contraseña
     # ── Chat ───────────────────────────────────────────────────────
+    CONTACT_ACCEPTED= "CONTACT_ACCEPTED"
     REQUEST_CHAT    = "REQUEST_CHAT"
     ACCEPT_CHAT     = "ACCEPT_CHAT"
     REJECT_CHAT     = "REJECT_CHAT"

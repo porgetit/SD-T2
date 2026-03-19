@@ -11,10 +11,7 @@ export function Sidebar() {
   const chats = useAppStore((s) => s.chats)
   const activeChatId = useAppStore((s) => s.activeChatId)
   const setActiveChat = useAppStore((s) => s.setActiveChat)
-  const requestChat = useAppStore((s) => s.requestChat)
-  const pendingRequest = useAppStore((s) => s.pendingRequest)
-  const acceptChat = useAppStore((s) => s.acceptChat)
-  const rejectChat = useAppStore((s) => s.rejectChat)
+  const getOrCreateChat = useAppStore((s) => s.getOrCreateChat)
   const connectionState = useAppStore((s) => s.connectionState)
 
   const [panelOpen, setPanelOpen] = useState(false)
@@ -25,7 +22,8 @@ export function Sidebar() {
   )
 
   async function handleSelectUser(username: string) {
-    await requestChat(username)
+    const chat = getOrCreateChat(username)
+    setActiveChat(chat.id)
   }
 
   function getPeerId(chat: { participantIds: string[] }): string {
@@ -78,28 +76,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Pending chat request banner */}
-      {pendingRequest && (
-        <div className="mx-3 mt-3 bg-[#FFFAE6] border border-[#FFDB58] rounded-xl p-3 flex-shrink-0">
-          <p className="text-[12px] font-medium text-[#7A6000] mb-2">
-            <span className="font-bold">{pendingRequest}</span> quiere chatear
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => void acceptChat()}
-              className="flex-1 h-7 bg-chat-yellow text-[#1A1A1A] text-[11px] font-bold rounded-lg"
-            >
-              Aceptar
-            </button>
-            <button
-              onClick={() => void rejectChat()}
-              className="flex-1 h-7 bg-white border border-chat-border text-chat-muted text-[11px] rounded-lg"
-            >
-              Rechazar
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Search */}
       <SearchBar onSelectUser={handleSelectUser} />

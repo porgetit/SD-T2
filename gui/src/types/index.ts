@@ -37,11 +37,11 @@ export type WsEventType =
   | 'END_CHAT'
   | 'USER_JOINED'
   | 'USER_LEFT'
-  | 'REGISTER_OK'
   | 'REGISTER_FAIL'
   | 'AUTH_OK'
   | 'AUTH_FAIL'
   | 'UPDATE_PROFILE'
+  | 'CONTACT_ACCEPTED'
 
 export interface WsEvent {
   type: WsEventType

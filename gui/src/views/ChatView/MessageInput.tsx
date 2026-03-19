@@ -6,6 +6,17 @@ export function MessageInput() {
   const [text, setText] = useState('')
   const sendMessage = useAppStore((s) => s.sendMessage)
   const activeChatId = useAppStore((s) => s.activeChatId)
+  const contacts = useAppStore((s) => s.contacts)
+  const chats = useAppStore((s) => s.chats)
+  const currentUser = useAppStore((s) => s.currentUser)
+
+  const isContact = activeChatId ? contacts.includes(activeChatId) : false
+  const activeChat = chats.find(c => c.participantIds.includes(activeChatId || ''))
+  
+  const myMessagesCount = activeChat?.messages.filter(m => m.senderId === currentUser?.id).length || 0
+  const theirMessagesCount = activeChat?.messages.filter(m => m.senderId !== currentUser?.id).length || 0
+
+  const isBlocked = !isContact && myMessagesCount > 0 && theirMessagesCount === 0
 
   async function handleSend() {
     const trimmed = text.trim()
@@ -39,16 +50,17 @@ export function MessageInput() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe un mensaje…"
+          placeholder={isBlocked ? "Esperando respuesta para continuar..." : "Escribe un mensaje…"}
           autoComplete="off"
-          className="w-full h-11 bg-chat-surface rounded-full pl-5 pr-12 text-[14px] text-[#1A1A1A] placeholder-chat-hint outline-none border-none"
+          disabled={isBlocked}
+          className="w-full h-11 bg-chat-surface rounded-full pl-5 pr-12 text-[14px] text-[#1A1A1A] placeholder-chat-hint outline-none border-none disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
           type="submit"
-          disabled={!text.trim()}
+          disabled={!text.trim() || isBlocked}
           aria-label="Enviar mensaje"
           className={`absolute right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-            text.trim()
+            text.trim() && !isBlocked
               ? 'bg-[#1A1A1A] text-white hover:bg-[#333]'
               : 'bg-chat-border text-chat-muted cursor-not-allowed'
           }`}

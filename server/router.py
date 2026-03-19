@@ -35,7 +35,8 @@ class MessageRouter:
             if ok:
                 await websocket.send(Message(
                     type=MessageType.COMMAND, sender="server",
-                    payload={"command": CommandType.AUTH_OK, "nickname": nickname, "avatar_b64": avatar}
+                    payload={"command": CommandType.AUTH_OK, "nickname": nickname, 
+                             "avatar_b64": avatar, "contacts": user_store.get_contacts(nickname)}
                 ).model_dump_json())
             else:
                 await websocket.send(Message(
@@ -71,7 +72,8 @@ class MessageRouter:
             websocket.nickname = nickname
             await websocket.send(Message(
                 type=MessageType.COMMAND, sender="server",
-                payload={"command": CommandType.AUTH_OK, "nickname": nickname, "avatar_b64": avatar}
+                payload={"command": CommandType.AUTH_OK, "nickname": nickname, 
+                         "avatar_b64": avatar, "contacts": user_store.get_contacts(nickname)}
             ).model_dump_json())
             # Broadcast USER_JOINED a los demás
             await self._broadcast_except(nickname, Message(
@@ -136,9 +138,43 @@ class MessageRouter:
     # ── Mensajes de texto y binario ─────────────────────────────────────────
 
     async def _handle_text(self, msg: Message):
+        sender = msg.sender
         target = msg.payload.get("target")
-        if target in self.server.clients:
-            await self.server.clients[target].websocket.send(msg.model_dump_json())
+
+        if not target or target not in self.server.clients:
+            return
+
+        # Lógica de emparejamiento / chat asíncrono
+        contacts = user_store.get_contacts(sender)
+        pending  = user_store.get_pending_incoming(sender)
+
+        if target in contacts:
+            pass  # Ya son contactos, ignorar control
+        elif target in pending:
+            # sender contesta al saludo de target -> Aceptar contacto
+            user_store.remove_pending(sender, target)
+            user_store.add_contact(sender, target)
+            
+            # Notificar a 'sender' que ganó a 'target' de contacto
+            await self.server.clients[sender].websocket.send(Message(
+                type=MessageType.COMMAND, sender="server",
+                payload={"command": CommandType.CONTACT_ACCEPTED, "contact": target}
+            ).model_dump_json())
+            
+            # Notificar a 'target' que ganó a 'sender' de contacto
+            await self.server.clients[target].websocket.send(Message(
+                type=MessageType.COMMAND, sender="server",
+                payload={"command": CommandType.CONTACT_ACCEPTED, "contact": sender}
+            ).model_dump_json())
+        else:
+            # Primer saludo de sender a target  
+            target_contacts = user_store.get_contacts(target)
+            target_pending = user_store.get_pending_incoming(target)
+            if sender not in target_contacts and sender not in target_pending:
+                user_store.add_pending(target, sender)
+
+        # Enviar mensaje al target
+        await self.server.clients[target].websocket.send(msg.model_dump_json())
 
     async def _handle_binary(self, msg: Message):
         target = msg.payload.get("target")

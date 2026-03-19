@@ -5,7 +5,7 @@
 import json
 import hashlib
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from typing import Optional
 
@@ -19,6 +19,8 @@ class UserRecord:
     password_hash: str
     avatar_b64: str = ""
     created_at: str = ""
+    contacts: list[str] = field(default_factory=list)
+    pending_incoming: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -26,10 +28,12 @@ class UserRecord:
     @staticmethod
     def from_dict(d: dict) -> "UserRecord":
         return UserRecord(
-            nickname    = d["nickname"],
+            nickname      = d["nickname"],
             password_hash = d["password_hash"],
-            avatar_b64  = d.get("avatar_b64", ""),
-            created_at  = d.get("created_at", ""),
+            avatar_b64    = d.get("avatar_b64", ""),
+            created_at    = d.get("created_at", ""),
+            contacts      = d.get("contacts", []),
+            pending_incoming = d.get("pending_incoming", []),
         )
 
 
@@ -119,3 +123,33 @@ def update_user(nickname: str, new_password: Optional[str] = None, avatar_b64: O
 
     _save_db(db)
     return True
+
+def get_contacts(nickname: str) -> list[str]:
+    db = _load_db()
+    return db[nickname].contacts if nickname in db else []
+
+def get_pending_incoming(nickname: str) -> list[str]:
+    db = _load_db()
+    return db[nickname].pending_incoming if nickname in db else []
+
+def add_contact(nick1: str, nick2: str) -> None:
+    db = _load_db()
+    if nick1 in db and nick2 in db:
+        if nick2 not in db[nick1].contacts: db[nick1].contacts.append(nick2)
+        if nick1 not in db[nick2].contacts: db[nick2].contacts.append(nick1)
+        _save_db(db)
+
+def add_pending(target: str, sender: str) -> None:
+    db = _load_db()
+    if target in db:
+        if sender not in db[target].pending_incoming:
+            db[target].pending_incoming.append(sender)
+            _save_db(db)
+
+def remove_pending(target: str, sender: str) -> None:
+    db = _load_db()
+    if target in db:
+        if sender in db[target].pending_incoming:
+            db[target].pending_incoming.remove(sender)
+            _save_db(db)
+
