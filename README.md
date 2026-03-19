@@ -1,5 +1,5 @@
 # ChatNet: Architecture & Project Status
-Proyecto de Sistema Distribuido P2P/Cliente-Servidor (SD-T2) desarrollado con **Python (FastAPI + WebSockets)** en el backend y una UI construida en **React (Vite + Zustand)**. Se provee de distribución autónoma mediante la empaquetación con **PyInstaller**.
+Proyecto de Sistema Distribuido Cliente-Servidor (SD-T2) desarrollado con **Python (FastAPI + WebSockets)** en el backend y una UI construida en **React (Vite + Zustand)**. Se provee de distribución autónoma mediante la empaquetación con **PyInstaller**.
 
 ## 🚀 Estado Actual del Proyecto (v1.0)
 El sistema actual es completamente funcional en términos de comunicación de texto asíncrona uno a uno.
