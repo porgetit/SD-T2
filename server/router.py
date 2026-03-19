@@ -36,7 +36,7 @@ class MessageRouter:
                 await websocket.send(Message(
                     type=MessageType.COMMAND, sender="server",
                     payload={"command": CommandType.AUTH_OK, "nickname": nickname, 
-                             "avatar_b64": avatar, "contacts": user_store.get_contacts(nickname)}
+                             "avatar_b64": avatar, "contacts_data": user_store.get_profiles(user_store.get_contacts(nickname))}
                 ).model_dump_json())
             else:
                 await websocket.send(Message(
@@ -73,12 +73,12 @@ class MessageRouter:
             await websocket.send(Message(
                 type=MessageType.COMMAND, sender="server",
                 payload={"command": CommandType.AUTH_OK, "nickname": nickname, 
-                         "avatar_b64": avatar, "contacts": user_store.get_contacts(nickname)}
+                         "avatar_b64": avatar, "contacts_data": user_store.get_profiles(user_store.get_contacts(nickname))}
             ).model_dump_json())
             # Broadcast USER_JOINED a los demás
             await self._broadcast_except(nickname, Message(
                 type=MessageType.COMMAND, sender=nickname,
-                payload={"command": CommandType.USER_JOINED, "nickname": nickname}
+                payload={"command": CommandType.USER_JOINED, "nickname": nickname, "avatar_b64": avatar}
             ))
             return nickname
 
@@ -114,16 +114,16 @@ class MessageRouter:
             ).model_dump_json())
             await self._broadcast_except(nick, Message(
                 type=MessageType.COMMAND, sender=nick,
-                payload={"command": CommandType.USER_JOINED, "nickname": nick}
+                payload={"command": CommandType.USER_JOINED, "nickname": nick, "avatar_b64": ""}
             ))
             return nick
 
         # ── Lista de usuarios ───────────────────────────────────────────────
         if cmd == CommandType.LIST_USERS:
-            users = list(self.server.clients.keys())
+            users_data = user_store.get_profiles(list(self.server.clients.keys()))
             await websocket.send(Message(
                 type=MessageType.COMMAND, sender="server",
-                payload={"command": CommandType.USER_LIST, "users": users}
+                payload={"command": CommandType.USER_LIST, "users_data": users_data}
             ).model_dump_json())
 
         # ── Reenvíos de chat ────────────────────────────────────────────────
@@ -155,16 +155,21 @@ class MessageRouter:
             user_store.remove_pending(sender, target)
             user_store.add_contact(sender, target)
             
+            target_profile = user_store.get_profiles([target])
+            target_data = target_profile[0] if target_profile else {"username": target, "avatar_b64": ""}
+            sender_profile = user_store.get_profiles([sender])
+            sender_data = sender_profile[0] if sender_profile else {"username": sender, "avatar_b64": ""}
+
             # Notificar a 'sender' que ganó a 'target' de contacto
             await self.server.clients[sender].websocket.send(Message(
                 type=MessageType.COMMAND, sender="server",
-                payload={"command": CommandType.CONTACT_ACCEPTED, "contact": target}
+                payload={"command": CommandType.CONTACT_ACCEPTED, "contact_data": target_data}
             ).model_dump_json())
             
             # Notificar a 'target' que ganó a 'sender' de contacto
             await self.server.clients[target].websocket.send(Message(
                 type=MessageType.COMMAND, sender="server",
-                payload={"command": CommandType.CONTACT_ACCEPTED, "contact": sender}
+                payload={"command": CommandType.CONTACT_ACCEPTED, "contact_data": sender_data}
             ).model_dump_json())
         else:
             # Primer saludo de sender a target  

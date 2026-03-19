@@ -141,11 +141,11 @@ class ChatService:
         )
         await self.network.send(msg)
 
-    async def send_text(self, text: str):
+    async def send_text(self, target: str, text: str):
         msg = Message(
             type=MessageType.TEXT,
             sender=self.nickname,
-            payload={"text": text, "target": self.peer}
+            payload={"text": text, "target": target}
         )
         await self.network.send(msg)
 

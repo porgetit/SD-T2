@@ -50,8 +50,8 @@ export const api = {
     return http.post('/chat/end')
   },
 
-  sendMessage(text: string) {
-    return http.post('/message', { text })
+  sendMessage(target: string, text: string) {
+    return http.post('/message', { target, text })
   },
 
   updateAccount(username: string, password?: string, avatarUrl?: string) {

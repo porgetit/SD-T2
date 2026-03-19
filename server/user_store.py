@@ -153,3 +153,10 @@ def remove_pending(target: str, sender: str) -> None:
             db[target].pending_incoming.remove(sender)
             _save_db(db)
 
+def get_profiles(nicknames: list[str]) -> list[dict]:
+    db = _load_db()
+    res = []
+    for n in nicknames:
+        if n in db:
+            res.append({"username": n, "avatar_b64": db[n].avatar_b64})
+    return res

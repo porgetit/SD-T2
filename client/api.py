@@ -34,6 +34,7 @@ class ChatReq(BaseModel):
     target: str
 
 class MessageReq(BaseModel):
+    target: str
     text: str
 
 class AccountReq(BaseModel):
@@ -112,7 +113,7 @@ async def end_chat():
 
 @app.post("/api/message", summary="Enviar mensaje de texto al peer actual")
 async def send_message(req: MessageReq):
-    await service.send_text(req.text)
+    await service.send_text(req.target, req.text)
     return {"status": "ok"}
 
 @app.post("/api/send", summary="Alias de /api/message (legacy, query param)")

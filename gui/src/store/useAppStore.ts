@@ -131,7 +131,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }))
 
     try {
-      await api.sendMessage(text)
+      await api.sendMessage(activeChatId, text)
     } catch {
       // Rollback on failure
       set((s) => ({
@@ -153,11 +153,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
       case 'AUTH_OK': {
         const nick = event.payload.nickname as string || currentUser?.username || ''
         const avatar = event.payload.avatar_b64 as string | undefined
-        const serverContacts = (event.payload.contacts as string[]) || []
-        set({
-          connectionState: 'CONNECTED',
-          currentUser: { id: nick, username: nick, ...(avatar ? { avatarUrl: avatar } : {}) },
-          contacts: serverContacts,
+        const serverContactsData = (event.payload.contacts_data as any[]) || []
+        
+        const contactsList = serverContactsData.map(c => c.username)
+        const contactsProfiles = serverContactsData.map(c => ({ id: c.username, username: c.username, ...(c.avatar_b64 ? { avatarUrl: c.avatar_b64 } : {}) }))
+
+        set((s) => {
+          const merged = [...s.knownUsers]
+          for (const cp of contactsProfiles) {
+            const idx = merged.findIndex(u => u.id === cp.id)
+            if (idx >= 0) merged[idx] = { ...merged[idx], ...cp }
+            else merged.push(cp)
+          }
+          return {
+            connectionState: 'CONNECTED',
+            currentUser: { id: nick, username: nick, ...(avatar ? { avatarUrl: avatar } : {}) },
+            contacts: contactsList,
+            knownUsers: merged,
+          }
         })
         break
       }
@@ -169,11 +182,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
 
       case 'USER_LIST': {
-        const users = (event.payload.users as string[]) ?? []
-        set({
-          knownUsers: users
-            .filter((u) => u !== currentUser?.username)
-            .map((u) => ({ id: u, username: u })),
+        const usersData = (event.payload.users_data as any[]) ?? []
+        set((s) => {
+          const newUsers = usersData
+            .filter((u) => u.username !== currentUser?.username)
+            .map((u) => ({ id: u.username, username: u.username, ...(u.avatar_b64 ? { avatarUrl: u.avatar_b64 } : {}) }))
+          
+          const merged = [...s.knownUsers]
+          for (const nu of newUsers) {
+            const idx = merged.findIndex(u => u.id === nu.id)
+            if (idx >= 0) merged[idx] = { ...merged[idx], ...nu }
+            else merged.push(nu)
+          }
+          return { knownUsers: merged }
         })
         break
       }
@@ -199,16 +220,32 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
 
       case 'CONTACT_ACCEPTED': {
-        const contact = event.payload.contact as string
-        set((s) => ({ contacts: [...s.contacts, contact] }))
+        const contactData = event.payload.contact_data as any
+        if (!contactData) return
+        set((s) => {
+          const newUser = { id: contactData.username, username: contactData.username, ...(contactData.avatar_b64 ? { avatarUrl: contactData.avatar_b64 } : {}) }
+          const merged = [...s.knownUsers]
+          const idx = merged.findIndex(u => u.id === newUser.id)
+          if (idx >= 0) merged[idx] = { ...merged[idx], ...newUser }
+          else merged.push(newUser)
+          
+          return { 
+            contacts: [...s.contacts, contactData.username],
+            knownUsers: merged
+          }
+        })
         break
       }
 
       case 'USER_JOINED':
         set((s) => {
-          const already = s.knownUsers.find((u) => u.username === event.sender)
-          if (already) return s
-          return { knownUsers: [...s.knownUsers, { id: event.sender, username: event.sender }] }
+          const avatar = event.payload.avatar_b64 as string | undefined
+          const newUser = { id: event.sender, username: event.sender, ...(avatar ? { avatarUrl: avatar } : {}) }
+          const merged = [...s.knownUsers]
+          const idx = merged.findIndex(u => u.id === event.sender)
+          if (idx >= 0) merged[idx] = { ...merged[idx], ...newUser }
+          else merged.push(newUser)
+          return { knownUsers: merged }
         })
         break
 
