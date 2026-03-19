@@ -8,9 +8,11 @@ export function ChatArea() {
   const activeChatId = useAppStore((s) => s.activeChatId)
   const chats = useAppStore((s) => s.chats)
   const currentUser = useAppStore((s) => s.currentUser)
+  const knownUsers = useAppStore((s) => s.knownUsers)
 
   const chat = chats.find((c) => c.id === activeChatId)
   const peerId = chat?.participantIds.find((id) => id !== currentUser?.id) ?? ''
+  const peerUser = knownUsers.find(u => u.username === peerId)
 
   // ── Empty state ───────────────────────────────────────────────
   if (!chat || !activeChatId) {
@@ -29,7 +31,7 @@ export function ChatArea() {
 
       {/* Header */}
       <div className="h-14 px-5 flex items-center gap-3 border-b border-chat-border flex-shrink-0">
-        <Avatar username={peerId} size={36} />
+        <Avatar username={peerId} avatarUrl={peerUser?.avatarUrl} size={36} />
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-bold text-[#1A1A1A] truncate">{peerId}</p>
         </div>

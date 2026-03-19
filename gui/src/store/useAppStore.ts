@@ -112,8 +112,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   sendMessage: async (text) => {
-    const { activeChatId, currentUser } = get()
+    const { activeChatId, currentUser, chats } = get()
     if (!activeChatId || !currentUser) return
+
+    const chat = chats.find(c => c.id === activeChatId)
+    const peerId = chat?.participantIds.find(id => id !== currentUser.id)
+    if (!peerId) return
 
     // Optimistic update
     const msg: Message = {
@@ -131,7 +135,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }))
 
     try {
-      await api.sendMessage(activeChatId, text)
+      await api.sendMessage(peerId, text)
     } catch {
       // Rollback on failure
       set((s) => ({

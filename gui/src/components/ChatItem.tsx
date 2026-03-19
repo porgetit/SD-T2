@@ -2,6 +2,7 @@
 import { Avatar } from './Avatar'
 import { formatRelativeTime } from '../utils/formatDate'
 import type { Chat } from '../types'
+import { useAppStore } from '../store/useAppStore'
 
 interface ChatItemProps {
   chat: Chat
@@ -13,6 +14,8 @@ interface ChatItemProps {
 export function ChatItem({ chat, peerId, isSelected, onClick }: ChatItemProps) {
   const lastMsg = chat.messages[chat.messages.length - 1]
   const preview = lastMsg?.text ?? ''
+  const knownUsers = useAppStore(s => s.knownUsers)
+  const peerUser = knownUsers.find(u => u.username === peerId)
 
   return (
     <button
@@ -22,7 +25,7 @@ export function ChatItem({ chat, peerId, isSelected, onClick }: ChatItemProps) {
         isSelected ? 'bg-chat-surface' : 'bg-white hover:bg-[#F9F9F9]',
       ].join(' ')}
     >
-      <Avatar username={peerId} size={40} />
+      <Avatar username={peerId} avatarUrl={peerUser?.avatarUrl} size={40} />
 
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-bold text-[#1A1A1A] truncate">{peerId}</p>
